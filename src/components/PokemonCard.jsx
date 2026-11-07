@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getPokemonDetails } from '../services/pokemonService';
+import { formatId, getTypeColor } from '../utils/pokemonTypes';
 
-function PokemonCard({ pokemonName }) {
+function PokemonCard({ pokemonName, onSelect }) {
   const [pokemon, setPokemon] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -20,34 +21,70 @@ function PokemonCard({ pokemonName }) {
     loadDetails();
   }, [pokemonName]);
 
-  if (loading) return <div style={cardStyle}>Cargando registro...</div>;
+  if (loading) {
+    return (
+      <div className="skeleton-card" aria-hidden="true">
+        <div className="skeleton skeleton-img" />
+        <div className="skeleton skeleton-line" />
+        <div className="skeleton skeleton-line short" />
+      </div>
+    );
+  }
+
   if (!pokemon) return null;
 
+  const mainType = pokemon.types[0]?.type.name;
+  const accent = getTypeColor(mainType);
+  const artwork =
+    pokemon.sprites.other?.['official-artwork']?.front_default ?? pokemon.sprites.front_default;
+
   return (
-    <div style={cardStyle}>
-      <img
-        src={pokemon.sprites.front_default}
-        alt={pokemon.name}
-        style={{ width: '100px', height: '100px' }}
-      />
-      <h3 style={{ textTransform: 'capitalize' }}>#{pokemon.id} {pokemon.name}</h3>
-      <div>
-        <strong>Tipos: </strong>
-        {pokemon.types.map((t) => t.type.name).join(', ')}
+    <article
+      className="card"
+      style={{ '--accent': accent }}
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(pokemon)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(pokemon);
+        }
+      }}
+      aria-label={`Ver detalles de ${pokemon.name}`}
+    >
+      <span className="card-id">{formatId(pokemon.id)}</span>
+
+      <div className="card-image">
+        <img src={artwork} alt={pokemon.name} loading="lazy" />
       </div>
-      <p><strong>HP:</strong> {pokemon.stats[0].base_stat} | <strong>Ataque:</strong> {pokemon.stats[1].base_stat}</p>
-    </div>
+
+      <h3 className="card-name">{pokemon.name}</h3>
+
+      <div className="card-types">
+        {pokemon.types.map((t) => (
+          <span
+            key={t.type.name}
+            className="type-badge"
+            style={{ backgroundColor: getTypeColor(t.type.name) }}
+          >
+            {t.type.name}
+          </span>
+        ))}
+      </div>
+
+      <div className="card-stats">
+        <span>
+          <strong>{pokemon.stats[0].base_stat}</strong> HP
+        </span>
+        <span>
+          <strong>{pokemon.stats[1].base_stat}</strong> ATK
+        </span>
+      </div>
+
+      <span className="card-hint">Ver detalles</span>
+    </article>
   );
 }
-
-const cardStyle = {
-  border: '1px solid #cbd5e1',
-  borderRadius: '6px',
-  padding: '15px',
-  margin: '10px',
-  width: '180px',
-  textAlign: 'center',
-  backgroundColor: '#ffffff'
-};
 
 export default PokemonCard;
